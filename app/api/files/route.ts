@@ -1,7 +1,7 @@
 import { list, del } from '@vercel/blob'
 import { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
-
+process.env.BLOB_READ_WRITE_TOKEN = process.env.BLOB2_READ_WRITE_TOKEN
 async function checkAuth() {
   const cookieStore = await cookies()
   const auth = cookieStore.get('portal_auth')

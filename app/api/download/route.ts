@@ -1,7 +1,7 @@
 import { list } from '@vercel/blob'
 import { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
-
+process.env.BLOB_READ_WRITE_TOKEN = process.env.BLOB2_READ_WRITE_TOKEN
 export const maxDuration = 60
 
 async function checkAuth() {
