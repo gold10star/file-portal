@@ -1,5 +1,7 @@
 import { put } from '@vercel/blob'
 import { NextRequest } from 'next/server'
+export const maxDuration = 60
+export const dynamic = 'force-dynamic'
 
 process.env.BLOB_READ_WRITE_TOKEN = process.env.BLOB2_READ_WRITE_TOKEN
 
@@ -54,4 +56,11 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     return new Response('Upload failed: ' + (err.message || 'Unknown'), { status: 500 })
   }
+}
+
+export const config = {
+  api: {
+    bodyParser: false,
+    responseLimit: '100mb',
+  },
 }
