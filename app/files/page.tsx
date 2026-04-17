@@ -59,7 +59,10 @@ function ExpiryBadge({ expiresAt }: { expiresAt: string }) {
 }
 
 export default function FilesPage() {
-  const [authed, setAuthed] = useState(false)
+ const [authed, setAuthed] = useState(() => {
+  if (typeof document === 'undefined') return false
+  return document.cookie.includes('portal_auth=')
+})
   const [pw, setPw] = useState('')
   const [pwError, setPwError] = useState('')
   const [files, setFiles] = useState<FileMeta[]>([])

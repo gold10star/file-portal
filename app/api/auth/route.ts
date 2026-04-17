@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (password === correct) {
     const cookieStore = await cookies()
     cookieStore.set('portal_auth', correct, {
-      httpOnly: true,
+      httpOnly: false,
       secure: true,
       sameSite: 'lax',
       maxAge: 60 * 5,

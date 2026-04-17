@@ -44,7 +44,10 @@ function QRCode({ url }: { url: string }) {
 }
 
 export default function Home() {
-  const [authed, setAuthed] = useState(false)
+ const [authed, setAuthed] = useState(() => {
+  if (typeof document === 'undefined') return false
+  return document.cookie.includes('portal_auth=')
+})
   const [pw, setPw] = useState('')
   const [pwError, setPwError] = useState('')
   const [checking, setChecking] = useState(false)
