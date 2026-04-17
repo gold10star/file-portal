@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
 
 export async function POST(req: NextRequest) {
@@ -6,16 +6,16 @@ export async function POST(req: NextRequest) {
   const correct = process.env.PORTAL_PASSWORD
 
   if (!correct) {
-    return new Response('Server misconfigured: PORTAL_PASSWORD not set', { status: 500 })
+    return new Response('Server misconfigured', { status: 500 })
   }
 
   if (password === correct) {
     const cookieStore = await cookies()
     cookieStore.set('portal_auth', correct, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 7,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 60 * 5,
       path: '/',
     })
     return new Response('OK', { status: 200 })
