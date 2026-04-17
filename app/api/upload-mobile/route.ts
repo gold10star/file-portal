@@ -1,11 +1,9 @@
 import { put } from '@vercel/blob'
 import { NextRequest } from 'next/server'
-export const maxDuration = 60
-export const dynamic = 'force-dynamic'
 
 process.env.BLOB_READ_WRITE_TOKEN = process.env.BLOB2_READ_WRITE_TOKEN
 
-
+export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   const key = req.nextUrl.searchParams.get('key')
@@ -19,18 +17,14 @@ export async function POST(req: NextRequest) {
   const storageKey = `uploads/${uuid}${ext}`
   const metaKey = `meta/${uuid}.json`
 
-  const contentType = req.headers.get('content-type') || 'application/octet-stream'
-  const fileSize = Number(req.headers.get('content-length') || 0)
-
-  if (fileSize > 100 * 1024 * 1024) {
-    return new Response('File too large', { status: 413 })
-  }
-
   try {
+    const contentType = req.headers.get('content-type') || 'application/octet-stream'
+
     const blob = await put(storageKey, req.body!, {
       access: 'private',
       contentType,
       addRandomSuffix: false,
+      multipart: true,
     })
 
     const now = new Date()
@@ -41,7 +35,7 @@ export async function POST(req: NextRequest) {
       metaKey,
       blobUrl: blob.url,
       originalName,
-      size: fileSize || 0,
+      size: blob.size || 0,
       uploadedAt: now.toISOString(),
       expiresAt: expiresAt.toISOString(),
     }
@@ -54,13 +48,7 @@ export async function POST(req: NextRequest) {
 
     return Response.json({ success: true, name: originalName })
   } catch (err: any) {
+    console.error('Mobile upload error:', err)
     return new Response('Upload failed: ' + (err.message || 'Unknown'), { status: 500 })
   }
-}
-
-export const config = {
-  api: {
-    bodyParser: false,
-    responseLimit: '100mb',
-  },
 }
