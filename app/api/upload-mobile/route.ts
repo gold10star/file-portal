@@ -4,7 +4,7 @@ import { NextRequest } from 'next/server'
 process.env.BLOB_READ_WRITE_TOKEN = process.env.BLOB2_READ_WRITE_TOKEN
 
 export const maxDuration = 60
-export const preferredRegion = 'auto'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   const key = req.nextUrl.searchParams.get('key')
@@ -17,25 +17,15 @@ export async function POST(req: NextRequest) {
   const uuid = crypto.randomUUID()
   const storageKey = `uploads/${uuid}${ext}`
   const metaKey = `meta/${uuid}.json`
+  const contentType = req.headers.get('content-type') || 'application/octet-stream'
 
   try {
-    const contentType = req.headers.get('content-type') || 'application/octet-stream'
-    const chunks: Uint8Array[] = []
-    const reader = req.body!.getReader()
-    
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      chunks.push(value)
-    }
-    
-    const fileBuffer = Buffer.concat(chunks)
-    const fileSize = fileBuffer.length
-
-    const blob = await put(storageKey, fileBuffer, {
+    // Stream directly to Vercel Blob without buffering
+    const blob = await put(storageKey, req.body!, {
       access: 'private',
       contentType,
       addRandomSuffix: false,
+      multipart: true,
     })
 
     const now = new Date()
@@ -46,7 +36,7 @@ export async function POST(req: NextRequest) {
       metaKey,
       blobUrl: blob.url,
       originalName,
-      size: fileSize,
+      size: 0,
       uploadedAt: now.toISOString(),
       expiresAt: expiresAt.toISOString(),
     }
@@ -57,7 +47,7 @@ export async function POST(req: NextRequest) {
       contentType: 'application/json',
     })
 
-    return Response.json({ success: true, name: originalName, size: fileSize })
+    return Response.json({ success: true, name: originalName })
   } catch (err: any) {
     console.error('Mobile upload error:', err)
     return new Response('Upload failed: ' + (err.message || 'Unknown'), { status: 500 })
