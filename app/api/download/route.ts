@@ -1,4 +1,4 @@
-import { list, head } from '@vercel/blob'
+import { list } from '@vercel/blob'
 import { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
 
@@ -25,8 +25,13 @@ export async function GET(req: NextRequest) {
     const { blobs } = await list({ prefix: `meta/${uuid}` })
     if (!blobs.length) return new Response('File not found', { status: 404 })
 
-    const metaInfo = await head(blobs[0].url)
-    const metaRes = await fetch(metaInfo.downloadUrl, { cache: 'no-store' })
+    // Fetch meta using token in header
+    const metaRes = await fetch(blobs[0].url, {
+      cache: 'no-store',
+      headers: {
+        'Authorization': `Bearer ${process.env.BLOB2_READ_WRITE_TOKEN}`
+      }
+    })
     if (!metaRes.ok) return new Response('Metadata error', { status: 500 })
 
     const meta = await metaRes.json()
@@ -35,8 +40,13 @@ export async function GET(req: NextRequest) {
       return new Response('File expired', { status: 410 })
     }
 
-    const fileInfo = await head(meta.blobUrl)
-    const fileRes = await fetch(fileInfo.downloadUrl, { cache: 'no-store' })
+    // Fetch actual file using token in header
+    const fileRes = await fetch(meta.blobUrl, {
+      cache: 'no-store',
+      headers: {
+        'Authorization': `Bearer ${process.env.BLOB2_READ_WRITE_TOKEN}`
+      }
+    })
     if (!fileRes.ok) return new Response('File fetch failed', { status: 502 })
 
     const headers = new Headers()
