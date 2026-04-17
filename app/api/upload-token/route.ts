@@ -27,5 +27,10 @@ export async function GET(req: NextRequest) {
     },
   })
 
-  return Response.json({ clientToken, pathname, uuid })
+  // Return both the token AND the upload URL
+  return Response.json({
+    clientToken,
+    uploadUrl: `https://blob.vercel-storage.com/${pathname}`,
+    pathname
+  })
 }
