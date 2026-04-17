@@ -12,11 +12,15 @@ export async function POST(req: NextRequest) {
 
     if (!message) return Response.json({ ok: true })
 
-    // Only accept from your chat ID
-    const chatId = message.chat?.id?.toString()
-    if (chatId !== process.env.TELEGRAM_CHAT_ID) {
-      return Response.json({ ok: true })
-    }
+ 
+ // Accept from your personal chat ID or your channel
+const chatId = message.chat?.id?.toString()
+const isPersonalChat = chatId === process.env.TELEGRAM_CHAT_ID
+const isChannel = chatId === process.env.TELEGRAM_CHANNEL_ID
+
+if (!isPersonalChat && !isChannel) {
+  return Response.json({ ok: true })
+}
 
     // Handle commands
     if (message.text === '/start') {
