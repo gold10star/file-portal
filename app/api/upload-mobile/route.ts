@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 process.env.BLOB_READ_WRITE_TOKEN = process.env.BLOB2_READ_WRITE_TOKEN
 
-export const maxDuration = 60
+
 
 export async function POST(req: NextRequest) {
   const key = req.nextUrl.searchParams.get('key')
