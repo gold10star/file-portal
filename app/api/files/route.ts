@@ -1,4 +1,4 @@
-import { list, del, head } from '@vercel/blob'
+import { list, del } from '@vercel/blob'
 import { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
 
@@ -15,37 +15,36 @@ export async function GET() {
 
   const { blobs } = await list({ prefix: 'meta/' })
   const now = Date.now()
-  const files = []
 
-for (const blob of blobs) {
-    try {
-      const res = await fetch(blob.url, { 
+  const results = await Promise.allSettled(
+    blobs.map(async (blob) => {
+      const res = await fetch(blob.url, {
         cache: 'no-store',
-        headers: {
-          'Authorization': `Bearer ${process.env.BLOB2_READ_WRITE_TOKEN}`
-        }
+        headers: { 'Authorization': `Bearer ${process.env.BLOB2_READ_WRITE_TOKEN}` }
       })
-      if (!res.ok) continue
+      if (!res.ok) return null
       const meta = await res.json()
-
       if (new Date(meta.expiresAt).getTime() < now) {
         try { await del(meta.blobUrl) } catch {}
         try { await del(blob.url) } catch {}
-        continue
+        return null
       }
-
-      files.push({
+      return {
         key: meta.key,
         metaKey: meta.metaKey,
         originalName: meta.originalName,
         size: meta.size,
         uploadedAt: meta.uploadedAt,
         expiresAt: meta.expiresAt,
-      })
-    } catch {}
-  }
+      }
+    })
+  )
 
-  files.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
+  const files = results
+    .filter(r => r.status === 'fulfilled' && r.value !== null)
+    .map(r => (r as PromiseFulfilledResult<any>).value)
+    .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
+
   return Response.json(files)
 }
 
@@ -59,8 +58,10 @@ export async function DELETE(req: NextRequest) {
   try {
     const { blobs } = await list({ prefix: metaKey })
     if (blobs.length > 0) {
-      const info = await head(blobs[0].url)
-      const metaRes = await fetch(info.downloadUrl, { cache: 'no-store' })
+      const metaRes = await fetch(blobs[0].url, {
+        cache: 'no-store',
+        headers: { 'Authorization': `Bearer ${process.env.BLOB2_READ_WRITE_TOKEN}` }
+      })
       if (metaRes.ok) {
         const meta = await metaRes.json()
         try { await del(meta.blobUrl) } catch {}
