@@ -17,10 +17,14 @@ export async function GET() {
   const now = Date.now()
   const files = []
 
-  for (const blob of blobs) {
+for (const blob of blobs) {
     try {
-      const info = await head(blob.url)
-      const res = await fetch(info.downloadUrl, { cache: 'no-store' })
+      const res = await fetch(blob.url, { 
+        cache: 'no-store',
+        headers: {
+          'Authorization': `Bearer ${process.env.BLOB2_READ_WRITE_TOKEN}`
+        }
+      })
       if (!res.ok) continue
       const meta = await res.json()
 
