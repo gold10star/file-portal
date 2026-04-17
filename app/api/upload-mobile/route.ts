@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getSignedUploadUrl } from '@/lib/b2'
+import { getSignedUploadUrl } from '../../../lib/b2'
 import crypto from 'crypto'
 
 export const maxDuration = 60
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     storage: 'b2',
   }
 
-  const { uploadToB2 } = await import('@/lib/b2')
+  const { uploadToB2 } = await import('../../../lib/b2')
   await uploadToB2(metaKey, JSON.stringify(meta), 'application/json')
 
   return Response.json({ success: true })
