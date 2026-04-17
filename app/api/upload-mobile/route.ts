@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       metaKey,
       blobUrl: blob.url,
       originalName,
-      size: blob.size || 0,
+      size: 0,
       uploadedAt: now.toISOString(),
       expiresAt: expiresAt.toISOString(),
     }
