@@ -1,7 +1,9 @@
-import { list } from '@vercel/blob'
+import { list, head } from '@vercel/blob'
 import { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
+
 process.env.BLOB_READ_WRITE_TOKEN = process.env.BLOB2_READ_WRITE_TOKEN
+
 export const maxDuration = 60
 
 async function checkAuth() {
@@ -19,12 +21,12 @@ export async function GET(req: NextRequest) {
   try {
     const filename = key.split('/').pop() || ''
     const uuid = filename.includes('.') ? filename.substring(0, filename.lastIndexOf('.')) : filename
-    const metaPrefix = `meta/${uuid}`
 
-    const { blobs } = await list({ prefix: metaPrefix })
+    const { blobs } = await list({ prefix: `meta/${uuid}` })
     if (!blobs.length) return new Response('File not found', { status: 404 })
 
-    const metaRes = await fetch(blobs[0].url, { cache: 'no-store' })
+    const metaInfo = await head(blobs[0].url)
+    const metaRes = await fetch(metaInfo.downloadUrl, { cache: 'no-store' })
     if (!metaRes.ok) return new Response('Metadata error', { status: 500 })
 
     const meta = await metaRes.json()
@@ -33,18 +35,18 @@ export async function GET(req: NextRequest) {
       return new Response('File expired', { status: 410 })
     }
 
-    const fileRes = await fetch(meta.blobUrl, { cache: 'no-store' })
+    const fileInfo = await head(meta.blobUrl)
+    const fileRes = await fetch(fileInfo.downloadUrl, { cache: 'no-store' })
     if (!fileRes.ok) return new Response('File fetch failed', { status: 502 })
 
     const headers = new Headers()
     headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(meta.originalName)}"`)
     headers.set('Content-Type', fileRes.headers.get('content-type') || 'application/octet-stream')
-    const cl = fileRes.headers.get('content-length')
-    if (cl) headers.set('Content-Length', cl)
     headers.set('Cache-Control', 'no-store')
 
     return new Response(fileRes.body, { status: 200, headers })
   } catch (err: any) {
+    console.error('Download error:', err)
     return new Response('Download failed', { status: 500 })
   }
 }

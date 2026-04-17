@@ -1,6 +1,7 @@
 import { put } from '@vercel/blob'
 import { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
+
 process.env.BLOB_READ_WRITE_TOKEN = process.env.BLOB2_READ_WRITE_TOKEN
 
 export const maxDuration = 60
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const blob = await put(storageKey, req.body!, {
-      access: 'public',
+      access: 'private',
       contentType,
       addRandomSuffix: false,
     })
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
 
     await put(metaKey, JSON.stringify(meta), {
-      access: 'public',
+      access: 'private',
       addRandomSuffix: false,
       contentType: 'application/json',
     })
