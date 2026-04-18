@@ -136,7 +136,7 @@ function NotesPanel() {
   const [saving, setSaving] = useState(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameVal, setRenameVal] = useState('')
-  const saveTimer = useRef<NodeJS.Timeout>()
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined as any)
 
   useEffect(() => { loadNotes() }, [])
 
@@ -311,7 +311,7 @@ function SheetsPanel() {
   const [filterText, setFilterText] = useState('')
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set())
   const [formatting, setFormatting] = useState<{ bold: boolean, italic: boolean, color: string, bg: string }>({ bold: false, italic: false, color: '#e2e8f0', bg: 'transparent' })
-  const saveTimer = useRef<NodeJS.Timeout>()
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined as any)
   const cellInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { loadSheets() }, [])
