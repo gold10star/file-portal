@@ -117,7 +117,7 @@ function Thumbnail({ file, blobUrl, onClick }: { file: FileMeta, blobUrl: string
       canvas.width = viewport.width
       canvas.height = viewport.height
       const ctx = canvas.getContext('2d')!
-      await page.render({ canvasContext: ctx, viewport }).promise
+ await page.render({ canvasContext: ctx, viewport, canvas }).promise
       setPdfThumb(canvas.toDataURL())
     } catch {}
   }
@@ -173,7 +173,7 @@ function ViewModal({ file, blobUrl, onClose }: { file: FileMeta, blobUrl: string
       canvas.width = viewport.width
       canvas.height = viewport.height
       const ctx = canvas.getContext('2d')!
-      await page.render({ canvasContext: ctx, viewport }).promise
+     await page.render({ canvasContext: ctx, viewport, canvas }).promise
       setPdfPages([canvas.toDataURL()])
       setLoading(false)
     } catch { setLoading(false) }
