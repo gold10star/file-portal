@@ -1,11 +1,11 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import ToolLayout from '@/components/tools/ToolLayout'
 import FilePicker from '@/components/tools/FilePicker'
 import ResultCard from '@/components/tools/ResultCard'
 
-export default function MergePage() {
+function MergeContent() {
   const [files, setFiles] = useState<File[]>([])
   const [processing, setProcessing] = useState(false)
   const [progress, setProgress] = useState('')
@@ -60,7 +60,7 @@ export default function MergePage() {
   }
 
   return (
-    <ToolLayout icon="📎" title="Merge PDFs" subtitle="Combine multiple PDFs into one · up to 20 files">
+    <>
       {results.length === 0 && (
         <>
           {loadingPreset && (
@@ -91,6 +91,16 @@ export default function MergePage() {
         </>
       )}
       {results.length > 0 && <ResultCard results={results} onReset={reset} />}
+    </>
+  )
+}
+
+export default function MergePage() {
+  return (
+    <ToolLayout icon="📎" title="Merge PDFs" subtitle="Combine multiple PDFs into one · up to 20 files">
+      <Suspense fallback={<div style={{ padding: 20, color: '#64748b', fontFamily: 'monospace', fontSize: 13 }}>Loading...</div>}>
+        <MergeContent />
+      </Suspense>
     </ToolLayout>
   )
 }
