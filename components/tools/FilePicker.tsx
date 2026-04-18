@@ -40,12 +40,12 @@ export default function FilePicker({
 
   function moveUp(i: number) {
     if (i === 0) return
-    const a = [...files]; [a[i - 1], a[i]] = [a[i], a[i - 1]]; setFiles(a)
+    const a = [...files];[a[i - 1], a[i]] = [a[i], a[i - 1]]; setFiles(a)
   }
 
   function moveDown(i: number) {
     if (i === files.length - 1) return
-    const a = [...files]; [a[i], a[i + 1]] = [a[i + 1], a[i]]; setFiles(a)
+    const a = [...files];[a[i], a[i + 1]] = [a[i + 1], a[i]]; setFiles(a)
   }
 
   async function loadPortalFiles() {
@@ -54,7 +54,7 @@ export default function FilePicker({
     try {
       const res = await fetch('/api/files')
       if (res.ok) setPortalFiles(await res.json())
-    } catch {}
+    } catch { }
     setLoading(false)
   }
 
