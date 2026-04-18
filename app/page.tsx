@@ -203,9 +203,12 @@ export default function Home() {
               {showQR ? '✕ QR' : '📱 QR'}
             </button>
           )}
-          <a href="/files" style={{ padding: '8px 14px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>
-            📂 Files
-          </a>
+        <a href="/tools" style={{ padding: '8px 12px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>
+  🔧 Tools
+</a>
+<a href="/files" style={{ padding: '8px 14px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>
+  📂 Files
+</a>
         </div>
       </div>
 

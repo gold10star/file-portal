@@ -83,7 +83,6 @@ export default function FilesPage() {
   const [deleting, setDeleting] = useState<Set<string>>(new Set())
   const [downloading, setDownloading] = useState<Set<string>>(new Set())
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
-  const [countdown, setCountdown] = useState(30)
 
   async function login() {
     setPwError('')
@@ -103,28 +102,12 @@ export default function FilesPage() {
       if (res.ok) {
         setFiles(await res.json())
         setLastRefresh(new Date())
-        setCountdown(30)
       }
     } catch {}
     setLoading(false)
   }, [])
 
-  // Initial load
   useEffect(() => { if (authed) loadFiles() }, [authed])
-
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    if (!authed) return
-    const interval = setInterval(() => loadFiles(), 30000)
-    return () => clearInterval(interval)
-  }, [authed])
-
-  // Countdown timer
-  useEffect(() => {
-    if (!authed) return
-    const tick = setInterval(() => setCountdown(c => c <= 1 ? 30 : c - 1), 1000)
-    return () => clearInterval(tick)
-  }, [authed])
 
   async function downloadFile(file: FileMeta) {
     setDownloading(prev => new Set([...prev, file.key]))
@@ -175,14 +158,12 @@ export default function FilesPage() {
 
   return (
     <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px 60px' }}>
-      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>Your Files</h1>
           <p style={{ fontSize: 12, color: '#64748b', fontFamily: "'DM Mono', monospace" }}>
             {files.length} file{files.length !== 1 ? 's' : ''} · {formatSize(totalSize)}
-            {lastRefresh && ` · refreshed ${lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`}
-            {` · auto-refresh in ${countdown}s`}
+            {lastRefresh && ` · ${lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -190,17 +171,17 @@ export default function FilesPage() {
             style={{ padding: '8px 14px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: loading ? '#475569' : '#94a3b8', fontSize: 13, cursor: loading ? 'default' : 'pointer' }}>
             {loading ? '...' : '↻ Refresh'}
           </button>
+          <a href="/tools" style={{ padding: '8px 14px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>🔧 Tools</a>
           <a href="/" style={{ padding: '8px 14px', background: '#2563eb', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>↑ Upload</a>
         </div>
       </div>
 
-      {/* Stats */}
-      {(files.length > 0 || loading) && (
+      {files.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
           {[
-            { label: 'Total files', value: loading ? '...' : files.length },
-            { label: 'Storage used', value: loading ? '...' : formatSize(totalSize) },
-            { label: 'Expiring soon', value: loading ? '...' : files.filter(f => daysLeft(f.expiresAt) <= 2).length },
+            { label: 'Total files', value: files.length },
+            { label: 'Storage used', value: formatSize(totalSize) },
+            { label: 'Expiring soon', value: files.filter(f => daysLeft(f.expiresAt) <= 2).length },
           ].map(({ label, value }) => (
             <div key={label} style={{ background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 10, padding: '14px 16px' }}>
               <p style={{ fontSize: 11, color: '#64748b', fontFamily: "'DM Mono', monospace", marginBottom: 4, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</p>
@@ -210,16 +191,8 @@ export default function FilesPage() {
         </div>
       )}
 
-      {/* Skeleton loading */}
-      {loading && files.length === 0 && (
-        <>
-          <SkeletonRow />
-          <SkeletonRow />
-          <SkeletonRow />
-        </>
-      )}
+      {loading && files.length === 0 && <><SkeletonRow /><SkeletonRow /><SkeletonRow /></>}
 
-      {/* Empty state */}
       {!loading && files.length === 0 && (
         <div style={{ textAlign: 'center', padding: '60px 0' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
@@ -228,13 +201,12 @@ export default function FilesPage() {
         </div>
       )}
 
-      {/* File rows */}
       {files.map(file => {
         const { icon, label, color } = getIcon(file.originalName)
         const isDl = downloading.has(file.key)
         const isDel = deleting.has(file.key)
         return (
-          <div key={file.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 12, marginBottom: 8, opacity: isDel ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+          <div key={file.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 12, marginBottom: 8, opacity: isDel ? 0.5 : 1 }}>
             <div style={{ width: 44, height: 44, borderRadius: 10, background: color + '20', border: `1px solid ${color}40`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <span style={{ fontSize: 18 }}>{icon}</span>
               <span style={{ fontSize: 8, color, fontFamily: "'DM Mono', monospace", fontWeight: 500 }}>{label}</span>
