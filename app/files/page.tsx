@@ -471,8 +471,9 @@ export default function FilesPage() {
             style={{ padding: '8px 12px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: loading ? '#475569' : '#94a3b8', fontSize: 13, cursor: loading ? 'default' : 'pointer' }}>
             {loading ? '...' : '↻'}
           </button>
-          <a href="/tools" style={{ padding: '8px 12px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>🔧 Tools</a>
-          <a href="/" style={{ padding: '8px 12px', background: '#2563eb', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>↑ Upload</a>
+     <a href="/tools" style={{ padding: '8px 14px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>🔧 Tools</a>
+<a href="/workspace" style={{ padding: '8px 12px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>🗂 Workspace</a>
+<a href="/" style={{ padding: '8px 14px', background: '#2563eb', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>↑ Upload</a>
         </div>
       </div>
 
