@@ -87,7 +87,7 @@ export default function ToolsPage() {
       }
       setProgress('Generating PDF...')
       const pdfBytes = await pdfDoc.save()
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+     const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       setResult({ url, name: 'images-combined.pdf', size: blob.size })
       setProgress('')
@@ -113,7 +113,7 @@ export default function ToolsPage() {
       }
       setProgress('Generating merged PDF...')
       const pdfBytes = await merged.save()
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+  const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       setResult({ url, name: 'merged.pdf', size: blob.size })
       setProgress('')
@@ -132,7 +132,7 @@ export default function ToolsPage() {
       const bytes = await files[0].arrayBuffer()
       const pdf = await PDFDocument.load(bytes)
       const pdfBytes = await pdf.save({ useObjectStreams: true, addDefaultPage: false })
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+     const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const savings = Math.round((1 - blob.size / files[0].size) * 100)
       setResult({ url, name: 'compressed.pdf', size: blob.size })
