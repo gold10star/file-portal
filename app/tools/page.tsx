@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef } from 'react'
 
 type Tool = 'images-to-pdf' | 'merge-pdf' | 'compress-pdf' | null
 
@@ -32,7 +32,9 @@ export default function ToolsPage() {
   const [processing, setProcessing] = useState(false)
   const [result, setResult] = useState<{ url: string, name: string, size: number } | null>(null)
   const [progress, setProgress] = useState('')
-  const [quality, setQuality] = useState(70)
+  const [portalFiles, setPortalFiles] = useState<{ key: string, originalName: string, size: number }[]>([])
+  const [showPortalPicker, setShowPortalPicker] = useState(false)
+  const [loadingPortal, setLoadingPortal] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   function reset() {
@@ -40,6 +42,7 @@ export default function ToolsPage() {
     setResult(null)
     setProgress('')
     setProcessing(false)
+    setShowPortalPicker(false)
   }
 
   function openTool(tool: Tool) {
@@ -67,6 +70,31 @@ export default function ToolsPage() {
     setFiles(prev => { const a = [...prev]; [a[i], a[i + 1]] = [a[i + 1], a[i]]; return a })
   }
 
+  async function loadPortalFiles() {
+    setLoadingPortal(true)
+    setShowPortalPicker(true)
+    try {
+      const res = await fetch('/api/files')
+      if (res.ok) setPortalFiles(await res.json())
+    } catch {}
+    setLoadingPortal(false)
+  }
+
+  async function pickFromPortal(file: { key: string, originalName: string, size: number }) {
+    setShowPortalPicker(false)
+    setProgress('Downloading from portal...')
+    try {
+      const res = await fetch(`/api/download?key=${encodeURIComponent(file.key)}`)
+      if (!res.ok) throw new Error('Download failed')
+      const blob = await res.blob()
+      const f = new File([blob], file.originalName, { type: blob.type || 'application/pdf' })
+      setFiles(prev => activeTool === 'compress-pdf' ? [f] : [...prev, f])
+      setProgress('')
+    } catch (err: any) {
+      setProgress('Error: ' + err.message)
+    }
+  }
+
   async function processImagesToPDF() {
     if (files.length === 0) return
     setProcessing(true)
@@ -87,7 +115,7 @@ export default function ToolsPage() {
       }
       setProgress('Generating PDF...')
       const pdfBytes = await pdfDoc.save()
-     const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' })
+      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       setResult({ url, name: 'images-combined.pdf', size: blob.size })
       setProgress('')
@@ -113,7 +141,7 @@ export default function ToolsPage() {
       }
       setProgress('Generating merged PDF...')
       const pdfBytes = await merged.save()
-  const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' })
+      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       setResult({ url, name: 'merged.pdf', size: blob.size })
       setProgress('')
@@ -126,24 +154,29 @@ export default function ToolsPage() {
   async function processCompressPDF() {
     if (files.length === 0) return
     setProcessing(true)
-    setProgress('Compressing PDF...')
+    setProgress('Loading PDF...')
     try {
       const { PDFDocument } = await import('pdf-lib')
       const bytes = await files[0].arrayBuffer()
-      const pdf = await PDFDocument.load(bytes)
-      const pdfBytes = await pdf.save({ useObjectStreams: true, addDefaultPage: false })
-     const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
+      const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true })
+      setProgress('Optimizing PDF structure...')
+      const pdfBytes = await pdf.save({
+        useObjectStreams: true,
+        addDefaultPage: false,
+        objectsPerTick: 50,
+      })
+      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' })
       const savings = Math.round((1 - blob.size / files[0].size) * 100)
-      setResult({ url, name: 'compressed.pdf', size: blob.size })
-      setProgress(savings > 0 ? `Reduced by ${savings}%` : 'Already optimized')
+      const url = URL.createObjectURL(blob)
+      setResult({ url, name: `compressed_${files[0].name}`, size: blob.size })
+      setProgress(savings > 0 ? `Reduced by ${savings}%` : 'File already optimized')
     } catch (err: any) {
       setProgress('Error: ' + err.message)
     }
     setProcessing(false)
   }
 
-  function download() {
+  async function download() {
     if (!result) return
     const a = document.createElement('a')
     a.href = result.url
@@ -175,12 +208,15 @@ export default function ToolsPage() {
   }
 
   const acceptMap: Record<string, string> = {
-    'images-to-pdf': 'image/jpeg,image/png,image/webp,image/heic',
+    'images-to-pdf': 'image/jpeg,image/png,image/webp',
     'merge-pdf': 'application/pdf',
     'compress-pdf': 'application/pdf',
   }
 
-  const toolConfig: Record<string, { title: string, icon: string, action: () => void, minFiles: number, maxFiles: number, btnLabel: string }> = {
+  const toolConfig: Record<string, {
+    title: string, icon: string, action: () => void,
+    minFiles: number, maxFiles: number, btnLabel: string
+  }> = {
     'images-to-pdf': { title: 'Images to PDF', icon: '🖼', action: processImagesToPDF, minFiles: 1, maxFiles: 20, btnLabel: 'Convert to PDF' },
     'merge-pdf': { title: 'Merge PDFs', icon: '📎', action: processMergePDF, minFiles: 2, maxFiles: 20, btnLabel: 'Merge PDFs' },
     'compress-pdf': { title: 'Compress PDF', icon: '🗜', action: processCompressPDF, minFiles: 1, maxFiles: 1, btnLabel: 'Compress PDF' },
@@ -189,7 +225,7 @@ export default function ToolsPage() {
   const s: Record<string, React.CSSProperties> = {
     wrap: { maxWidth: 600, margin: '0 auto', padding: '32px 20px 60px' },
     nav: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 },
-    dropzone: { border: '2px dashed #2a2d3a', borderRadius: 14, padding: '32px 20px', textAlign: 'center', cursor: 'pointer', background: '#13151f', marginBottom: 16 },
+    dropzone: { border: '2px dashed #2a2d3a', borderRadius: 14, padding: '32px 20px', textAlign: 'center', cursor: 'pointer', background: '#13151f', marginBottom: 12 },
     fileRow: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 10, marginBottom: 8 },
     btn: { padding: '12px 24px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer' },
     btnSec: { padding: '12px 24px', background: 'transparent', color: '#94a3b8', border: '1px solid #2a2d3a', borderRadius: 10, fontSize: 14, cursor: 'pointer' },
@@ -214,9 +250,9 @@ export default function ToolsPage() {
         <ToolCard icon="🗜" title="Compress PDF" desc="Reduce PDF file size for faster sharing" onClick={() => openTool('compress-pdf')} />
       </div>
 
-      <div style={{ marginTop: 24, padding: '16px', background: '#13151f', border: '1px solid #2a2d3a', borderRadius: 12 }}>
+      <div style={{ marginTop: 24, padding: 16, background: '#13151f', border: '1px solid #2a2d3a', borderRadius: 12 }}>
         <p style={{ fontSize: 12, color: '#475569', fontFamily: "'DM Mono', monospace", textAlign: 'center' }}>
-          All processing happens in your browser — files are never uploaded to any server until you choose to
+          All processing happens in your browser — files never leave your device until you choose to upload
         </p>
       </div>
     </div>
@@ -228,7 +264,8 @@ export default function ToolsPage() {
     <div style={s.wrap}>
       <div style={s.nav}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => { setActiveTool(null); reset() }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 20, padding: 0 }}>←</button>
+          <button onClick={() => { setActiveTool(null); reset() }}
+            style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 20, padding: 0 }}>←</button>
           <div>
             <h1 style={{ fontSize: 18, fontWeight: 600, color: '#f1f5f9' }}>{cfg.icon} {cfg.title}</h1>
             <p style={{ fontSize: 12, color: '#64748b', fontFamily: "'DM Mono', monospace" }}>
@@ -241,15 +278,63 @@ export default function ToolsPage() {
 
       {/* Drop zone */}
       {files.length < cfg.maxFiles && !result && (
-        <div style={s.dropzone} onClick={() => fileRef.current?.click()}>
-          <input ref={fileRef} type="file" multiple={cfg.maxFiles > 1} accept={acceptMap[activeTool]} style={{ display: 'none' }} onChange={e => { addFiles(e.target.files); e.target.value = '' }} />
-          <div style={{ fontSize: 28, marginBottom: 8 }}>📁</div>
-          <p style={{ color: '#94a3b8', fontSize: 14, marginBottom: 4 }}>
-            {activeTool === 'images-to-pdf' ? 'Tap to select images' : activeTool === 'merge-pdf' ? 'Tap to select PDF files' : 'Tap to select a PDF'}
-          </p>
-          <p style={{ color: '#475569', fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
-            {activeTool === 'images-to-pdf' ? 'JPG, PNG, WEBP supported' : 'PDF files only'}
-          </p>
+        <>
+          <div style={s.dropzone} onClick={() => fileRef.current?.click()}>
+            <input ref={fileRef} type="file" multiple={cfg.maxFiles > 1}
+              accept={acceptMap[activeTool]} style={{ display: 'none' }}
+              onChange={e => { addFiles(e.target.files); e.target.value = '' }} />
+            <div style={{ fontSize: 28, marginBottom: 8 }}>📁</div>
+            <p style={{ color: '#94a3b8', fontSize: 14, marginBottom: 4 }}>
+              {activeTool === 'images-to-pdf' ? 'Tap to select images' :
+                activeTool === 'merge-pdf' ? 'Tap to select PDF files' : 'Tap to select a PDF'}
+            </p>
+            <p style={{ color: '#475569', fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
+              {activeTool === 'images-to-pdf' ? 'JPG, PNG, WEBP supported' : 'PDF files only'}
+            </p>
+          </div>
+
+          {/* Choose from portal */}
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <button onClick={loadPortalFiles} style={{
+              background: 'none', border: '1px solid #2a2d3a', borderRadius: 8,
+              color: '#64748b', fontSize: 13, cursor: 'pointer', padding: '8px 16px',
+              fontFamily: "'DM Mono', monospace"
+            }}>
+              📂 Choose from portal files
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Portal file picker */}
+      {showPortalPicker && (
+        <div style={{ background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <p style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>Choose from portal</p>
+            <button onClick={() => setShowPortalPicker(false)}
+              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 16 }}>✕</button>
+          </div>
+          {loadingPortal && <p style={{ color: '#64748b', fontSize: 13, fontFamily: "'DM Mono', monospace" }}>Loading...</p>}
+          {!loadingPortal && portalFiles.length === 0 && (
+            <p style={{ color: '#64748b', fontSize: 13 }}>No files in portal</p>
+          )}
+          {portalFiles
+            .filter(f => activeTool === 'images-to-pdf'
+              ? ['jpg', 'jpeg', 'png', 'webp'].includes(f.originalName.split('.').pop()?.toLowerCase() || '')
+              : f.originalName.toLowerCase().endsWith('.pdf'))
+            .map(f => (
+              <button key={f.key} onClick={() => pickFromPortal(f)} style={{
+                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                background: '#13151f', border: '1px solid #2a2d3a', borderRadius: 8,
+                padding: '10px 12px', marginBottom: 8, cursor: 'pointer', textAlign: 'left'
+              }}>
+                <span style={{ fontSize: 16 }}>{f.originalName.endsWith('.pdf') ? '📄' : '🖼'}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.originalName}</p>
+                  <p style={{ fontSize: 11, color: '#64748b', fontFamily: "'DM Mono', monospace" }}>{formatSize(f.size)}</p>
+                </div>
+              </button>
+            ))}
         </div>
       )}
 
@@ -275,10 +360,10 @@ export default function ToolsPage() {
         </div>
       )}
 
-      {/* Compress quality slider */}
+      {/* Compress info */}
       {activeTool === 'compress-pdf' && files.length > 0 && !result && (
-        <div style={{ marginBottom: 16, padding: '16px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 12 }}>
-          <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>Original size: {formatSize(files[0]?.size || 0)}</p>
+        <div style={{ marginBottom: 16, padding: 16, background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 12 }}>
+          <p style={{ fontSize: 13, color: '#94a3b8' }}>Original size: <strong style={{ color: '#e2e8f0' }}>{formatSize(files[0]?.size || 0)}</strong></p>
         </div>
       )}
 
@@ -289,33 +374,35 @@ export default function ToolsPage() {
         </button>
       )}
 
-      {/* Progress */}
+      {/* Processing state */}
       {processing && (
-        <div style={{ textAlign: 'center', padding: '24px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 12, marginBottom: 16 }}>
+        <div style={{ textAlign: 'center', padding: 24, background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 12, marginBottom: 16 }}>
           <div style={{ fontSize: 24, marginBottom: 8 }}>⚙️</div>
           <p style={{ color: '#94a3b8', fontSize: 14, fontFamily: "'DM Mono', monospace" }}>{progress || 'Processing...'}</p>
         </div>
       )}
 
-      {/* Progress message (non-processing) */}
+      {/* Progress message */}
       {!processing && progress && !result && (
         <p style={{ textAlign: 'center', fontSize: 13, color: progress.startsWith('Error') ? '#f87171' : '#4ade80', fontFamily: "'DM Mono', monospace", marginBottom: 16 }}>{progress}</p>
       )}
 
       {/* Result */}
       {result && (
-        <div style={{ background: '#0d2618', border: '1px solid #166534', borderRadius: 14, padding: '24px', textAlign: 'center' }}>
+        <div style={{ background: '#0d2618', border: '1px solid #166534', borderRadius: 14, padding: 24, textAlign: 'center' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
           <p style={{ fontSize: 16, fontWeight: 600, color: '#4ade80', marginBottom: 4 }}>{result.name}</p>
           <p style={{ fontSize: 12, color: '#64748b', fontFamily: "'DM Mono', monospace", marginBottom: 16 }}>
-            {formatSize(result.size)}
-            {progress && ` · ${progress}`}
+            {formatSize(result.size)}{progress ? ` · ${progress}` : ''}
           </p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={download} style={s.btn}>↓ Download</button>
             <button onClick={uploadToPortal} style={{ ...s.btn, background: '#0f6e56' }}>☁️ Upload to Portal</button>
             <button onClick={reset} style={s.btnSec}>Process Another</button>
           </div>
+          {progress && progress.includes('Uploaded') && (
+            <p style={{ marginTop: 12, fontSize: 13, color: '#4ade80', fontFamily: "'DM Mono', monospace" }}>{progress}</p>
+          )}
         </div>
       )}
     </div>
