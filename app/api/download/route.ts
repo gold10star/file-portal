@@ -25,12 +25,9 @@ export async function GET(req: NextRequest) {
     const { blobs } = await list({ prefix: `meta/${uuid}` })
     if (!blobs.length) return new Response('File not found', { status: 404 })
 
-    // Fetch meta using token in header
     const metaRes = await fetch(blobs[0].url, {
       cache: 'no-store',
-      headers: {
-        'Authorization': `Bearer ${process.env.BLOB2_READ_WRITE_TOKEN}`
-      }
+      headers: { 'Authorization': `Bearer ${process.env.BLOB2_READ_WRITE_TOKEN}` }
     })
     if (!metaRes.ok) return new Response('Metadata error', { status: 500 })
 
@@ -40,19 +37,26 @@ export async function GET(req: NextRequest) {
       return new Response('File expired', { status: 410 })
     }
 
-    // Fetch actual file using token in header
+    // Use displayName if available, fallback to originalName
+    const downloadName = meta.displayName || meta.originalName || 'file'
+
     const fileRes = await fetch(meta.blobUrl, {
       cache: 'no-store',
-      headers: {
-        'Authorization': `Bearer ${process.env.BLOB2_READ_WRITE_TOKEN}`
-      }
+      headers: { 'Authorization': `Bearer ${process.env.BLOB2_READ_WRITE_TOKEN}` }
     })
     if (!fileRes.ok) return new Response('File fetch failed', { status: 502 })
 
+    const contentType = fileRes.headers.get('content-type') || 'application/octet-stream'
     const headers = new Headers()
-    headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(meta.originalName)}"`)
-    headers.set('Content-Type', fileRes.headers.get('content-type') || 'application/octet-stream')
+
+    // Properly encode filename for Content-Disposition
+    const encodedName = encodeURIComponent(downloadName).replace(/'/g, '%27').replace(/\(/g, '%28').replace(/\)/g, '%29')
+    headers.set('Content-Disposition', `attachment; filename="${downloadName}"; filename*=UTF-8''${encodedName}`)
+    headers.set('Content-Type', contentType)
     headers.set('Cache-Control', 'no-store')
+
+    const cl = fileRes.headers.get('content-length')
+    if (cl) headers.set('Content-Length', cl)
 
     return new Response(fileRes.body, { status: 200, headers })
   } catch (err: any) {

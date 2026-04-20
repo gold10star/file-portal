@@ -9,22 +9,17 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const message = body.message || body.channel_post
-
     if (!message) return Response.json({ ok: true })
 
- 
- // Accept from your personal chat ID or your channel
-const chatId = message.chat?.id?.toString()
-const isPersonalChat = chatId === process.env.TELEGRAM_CHAT_ID
-const isChannel = chatId === process.env.TELEGRAM_CHANNEL_ID
+    const chatId = message.chat?.id?.toString()
+    const isPersonalChat = chatId === process.env.TELEGRAM_CHAT_ID
+    const isChannel = chatId === process.env.TELEGRAM_CHANNEL_ID
 
-if (!isPersonalChat && !isChannel) {
-  return Response.json({ ok: true })
-}
+    if (!isPersonalChat && !isChannel) return Response.json({ ok: true })
 
     // Handle commands
     if (message.text === '/start') {
-      await sendMessage(chatId, '✅ File Portal Bot ready!\n\nSend me any file, photo or document and it will appear in your portal at /files')
+      await sendMessage(chatId, '✅ File Portal Bot ready!\n\n📁 Send any file → saved to portal\n📝 Send text → saved as note\n\nCommands:\n/files — view portal\n/notes — view notes')
       return Response.json({ ok: true })
     }
 
@@ -33,7 +28,34 @@ if (!isPersonalChat && !isChannel) {
       return Response.json({ ok: true })
     }
 
-    // Get file info
+    if (message.text === '/notes') {
+      await sendMessage(chatId, `📝 View your notes:\nhttps://file-portal-ten.vercel.app/workspace`)
+      return Response.json({ ok: true })
+    }
+
+    // Handle TEXT messages → save as note
+    if (message.text && !message.text.startsWith('/')) {
+      const id = Math.random().toString(36).slice(2) + Date.now().toString(36)
+      const now = new Date()
+      // Create title from first line or first 50 chars
+      const firstLine = message.text.split('\n')[0].slice(0, 50)
+      const title = firstLine || `Note ${now.toLocaleDateString('en-IN')}`
+      const note = {
+        id,
+        title,
+        content: message.text,
+        updatedAt: now.toISOString(),
+      }
+      await put(`notes/${id}.json`, JSON.stringify(note), {
+        access: 'private',
+        addRandomSuffix: false,
+        contentType: 'application/json',
+      })
+      await sendMessage(chatId, `📝 Saved to notes: "${title}"\n\nhttps://file-portal-ten.vercel.app/workspace`)
+      return Response.json({ ok: true })
+    }
+
+    // Handle FILE messages
     let fileId: string | null = null
     let fileName = 'file'
     let mimeType = 'application/octet-stream'
@@ -61,24 +83,19 @@ if (!isPersonalChat && !isChannel) {
       mimeType = 'audio/ogg'
     }
 
-    if (!fileId) {
-      await sendMessage(chatId, '⚠️ Please send a file, photo or document.')
-      return Response.json({ ok: true })
-    }
+    if (!fileId) return Response.json({ ok: true })
 
-    // Get file download URL from Telegram
-    const fileRes = await fetch(
-      `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`
-    )
+    // Get file path from Telegram
+    const fileRes = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`)
     const fileData = await fileRes.json()
     const filePath = fileData.result?.file_path
 
     if (!filePath) {
-      await sendMessage(chatId, '❌ Could not get file. File may be too large (>20MB via Telegram API).')
+      await sendMessage(chatId, '❌ File too large for bot API (>20MB). Please upload directly at:\nhttps://file-portal-ten.vercel.app')
       return Response.json({ ok: true })
     }
 
-    // Download file from Telegram
+    // Download from Telegram
     const downloadUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${filePath}`
     const fileResponse = await fetch(downloadUrl)
     if (!fileResponse.ok) throw new Error('Failed to download from Telegram')
@@ -115,8 +132,8 @@ if (!isPersonalChat && !isChannel) {
     })
 
     await sendMessage(chatId, `✅ *${fileName}* uploaded!\n\nView at: https://file-portal-ten.vercel.app/files`)
-
     return Response.json({ ok: true })
+
   } catch (err: any) {
     console.error('Telegram webhook error:', err)
     return Response.json({ ok: true })
