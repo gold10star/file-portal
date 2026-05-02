@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { upload } from '@vercel/blob/client'
 
@@ -22,15 +22,15 @@ function formatSize(bytes: number) {
 
 function getIcon(name: string) {
   const ext = name.split('.').pop()?.toLowerCase() || ''
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'].includes(ext)) return { icon: '🖼', label: 'IMG', color: '#059669' }
-  if (ext === 'pdf') return { icon: '📄', label: 'PDF', color: '#dc2626' }
-  if (['doc', 'docx'].includes(ext)) return { icon: '📝', label: 'DOC', color: '#2563eb' }
-  if (['xls', 'xlsx', 'csv'].includes(ext)) return { icon: '📊', label: 'XLS', color: '#16a34a' }
-  if (['ppt', 'pptx'].includes(ext)) return { icon: '📋', label: 'PPT', color: '#ea580c' }
-  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return { icon: '🗜', label: 'ZIP', color: '#7c3aed' }
-  if (['mp4', 'mov', 'avi', 'mkv'].includes(ext)) return { icon: '🎬', label: 'VID', color: '#db2777' }
-  if (['mp3', 'wav', 'aac', 'm4a'].includes(ext)) return { icon: '🎵', label: 'AUD', color: '#0891b2' }
-  return { icon: '📁', label: ext.toUpperCase().slice(0, 4) || 'FILE', color: '#64748b' }
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'].includes(ext)) return { icon: 'ðŸ–¼', label: 'IMG', color: '#059669' }
+  if (ext === 'pdf') return { icon: 'ðŸ“„', label: 'PDF', color: '#dc2626' }
+  if (['doc', 'docx'].includes(ext)) return { icon: 'ðŸ“', label: 'DOC', color: '#2563eb' }
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return { icon: 'ðŸ“Š', label: 'XLS', color: '#16a34a' }
+  if (['ppt', 'pptx'].includes(ext)) return { icon: 'ðŸ“‹', label: 'PPT', color: '#ea580c' }
+  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return { icon: 'ðŸ—œ', label: 'ZIP', color: '#7c3aed' }
+  if (['mp4', 'mov', 'avi', 'mkv'].includes(ext)) return { icon: 'ðŸŽ¬', label: 'VID', color: '#db2777' }
+  if (['mp3', 'wav', 'aac', 'm4a'].includes(ext)) return { icon: 'ðŸŽµ', label: 'AUD', color: '#0891b2' }
+  return { icon: 'ðŸ“', label: ext.toUpperCase().slice(0, 4) || 'FILE', color: '#64748b' }
 }
 
 function QRCode({ url }: { url: string }) {
@@ -92,7 +92,7 @@ export default function Home() {
       file: f,
       id: Math.random().toString(36).slice(2),
       progress: 0,
-      error: f.size > MAX_BYTES ? `File too large — max ${MAX_MB} MB` : undefined,
+      error: f.size > MAX_BYTES ? `File too large â€” max ${MAX_MB} MB` : undefined,
     }))
     setEntries(prev => [...prev, ...newEntries])
   }
@@ -120,13 +120,14 @@ export default function Home() {
         const uuid = crypto.randomUUID()
         const pathname = `uploads/${uuid}${ext}`
 
-        // Use Vercel Blob client upload — goes directly to Blob, bypasses Vercel function
+        // Use Vercel Blob client upload â€” goes directly to Blob, bypasses Vercel function
         await upload(pathname, entry.file, {
           access: 'private',
           handleUploadUrl: '/api/upload',
           clientPayload: JSON.stringify({
             originalName: entry.file.name,
-            uuid,`n          size: entry.file.size,`n          size: entry.file.size,`n          size: entry.file.size,
+            uuid,
+          size: entry.file.size,        size: entry.file.size,
           }),
           onUploadProgress: ({ percentage }) => {
             setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, progress: Math.min(95, percentage) } : e))
@@ -135,7 +136,7 @@ export default function Home() {
 
         setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, progress: 100, done: true } : e))
       } catch (err: any) {
-        const msg = err.message?.includes('401') ? 'Session expired — please refresh' : (err.message || 'Upload failed')
+        const msg = err.message?.includes('401') ? 'Session expired â€” please refresh' : (err.message || 'Upload failed')
         setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, error: msg, progress: 0 } : e))
       }
     }
@@ -150,9 +151,9 @@ export default function Home() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 380 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ width: 56, height: 56, background: '#1e2a3a', border: '1px solid #2a3f5f', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, margin: '0 auto 16px' }}>🔒</div>
+          <div style={{ width: 56, height: 56, background: '#1e2a3a', border: '1px solid #2a3f5f', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, margin: '0 auto 16px' }}>ðŸ”’</div>
           <h1 style={{ fontSize: 24, fontWeight: 600, color: '#f1f5f9', marginBottom: 6 }}>File Portal</h1>
-          <p style={{ color: '#64748b', fontSize: 14, fontFamily: 'monospace' }}>Secure · Private · Auto-expiring</p>
+          <p style={{ color: '#64748b', fontSize: 14, fontFamily: 'monospace' }}>Secure Â· Private Â· Auto-expiring</p>
         </div>
         <div style={{ background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 16, padding: '28px 24px' }}>
           <label style={{ display: 'block', fontSize: 11, fontFamily: 'monospace', color: '#64748b', letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 8 }}>Password</label>
@@ -177,19 +178,19 @@ export default function Home() {
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>Upload Files</h1>
           <p style={{ fontSize: 12, color: '#64748b', fontFamily: 'monospace' }}>
-            Up to {MAX_FILES} files · {MAX_MB} MB each · auto-deleted in 7 days
+            Up to {MAX_FILES} files Â· {MAX_MB} MB each Â· auto-deleted in 7 days
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {!isMobile && (
             <button onClick={() => setShowQR(v => !v)} title="Show QR code"
               style={{ padding: '8px 12px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, cursor: 'pointer' }}>
-              {showQR ? '✕ QR' : '📱 QR'}
+              {showQR ? 'âœ• QR' : 'ðŸ“± QR'}
             </button>
           )}
-          <a href="/tools" style={{ padding: '8px 12px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>🔧</a>
-          <a href="/workspace" style={{ padding: '8px 12px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>🗂</a>
-          <a href="/files" style={{ padding: '8px 12px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>📂</a>
+          <a href="/tools" style={{ padding: '8px 12px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>ðŸ”§</a>
+          <a href="/workspace" style={{ padding: '8px 12px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>ðŸ—‚</a>
+          <a href="/files" style={{ padding: '8px 12px', background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8, color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>ðŸ“‚</a>
         </div>
       </div>
 
@@ -200,9 +201,9 @@ export default function Home() {
       {isMobile && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
           {[
-            { ref: cameraRef, icon: '📷', label: 'Camera', accept: 'image/*', capture: 'environment' },
-            { ref: photoRef, icon: '🖼', label: 'Photos', accept: 'image/*' },
-            { ref: fileRef, icon: '📁', label: 'Files', accept: '*/*' },
+            { ref: cameraRef, icon: 'ðŸ“·', label: 'Camera', accept: 'image/*', capture: 'environment' },
+            { ref: photoRef, icon: 'ðŸ–¼', label: 'Photos', accept: 'image/*' },
+            { ref: fileRef, icon: 'ðŸ“', label: 'Files', accept: '*/*' },
           ].map(({ ref, icon, label, accept, capture }) => (
             <button key={label} onClick={() => (ref as React.RefObject<HTMLInputElement>).current?.click()}
               disabled={entries.length >= MAX_FILES}
@@ -231,12 +232,12 @@ export default function Home() {
           cursor: entries.length >= MAX_FILES ? 'not-allowed' : 'pointer',
           background: dragging ? '#1a2535' : '#13151f', transition: 'all 0.2s', marginBottom: 16,
         }}>
-        <div style={{ fontSize: 32, marginBottom: 10 }}>{dragging ? '📂' : '☁️'}</div>
+        <div style={{ fontSize: 32, marginBottom: 10 }}>{dragging ? 'ðŸ“‚' : 'â˜ï¸'}</div>
         <p style={{ color: dragging ? '#93c5fd' : '#94a3b8', fontSize: 15, fontWeight: 500, marginBottom: 4 }}>
           {dragging ? 'Drop files here' : entries.length >= MAX_FILES ? `Max ${MAX_FILES} files reached` : 'Drag & drop files here'}
         </p>
         <p style={{ color: '#475569', fontSize: 12, fontFamily: 'monospace' }}>
-          {isMobile ? 'or use buttons above' : `or click to browse · up to ${MAX_MB}MB per file`}
+          {isMobile ? 'or use buttons above' : `or click to browse Â· up to ${MAX_MB}MB per file`}
         </p>
       </div>
 
@@ -266,12 +267,12 @@ export default function Home() {
                       <p style={{ fontSize: 10, color: '#3b82f6', marginTop: 2, fontFamily: 'monospace' }}>{entry.progress}%</p>
                     </>
                   )}
-                  {entry.error && <p style={{ fontSize: 11, color: '#f87171', marginTop: 4, fontFamily: 'monospace' }}>✕ {entry.error}</p>}
-                  {entry.done && <p style={{ fontSize: 11, color: '#4ade80', marginTop: 4, fontFamily: 'monospace' }}>✓ Uploaded</p>}
+                  {entry.error && <p style={{ fontSize: 11, color: '#f87171', marginTop: 4, fontFamily: 'monospace' }}>âœ• {entry.error}</p>}
+                  {entry.done && <p style={{ fontSize: 11, color: '#4ade80', marginTop: 4, fontFamily: 'monospace' }}>âœ“ Uploaded</p>}
                 </div>
                 {!uploading && (
                   <button onClick={() => removeEntry(entry.id)}
-                    style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 18, padding: '4px 6px', borderRadius: 6, lineHeight: 1, flexShrink: 0 }}>✕</button>
+                    style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 18, padding: '4px 6px', borderRadius: 6, lineHeight: 1, flexShrink: 0 }}>âœ•</button>
                 )}
               </div>
             )
@@ -290,10 +291,10 @@ export default function Home() {
       {/* Success */}
       {allDone && (
         <div style={{ background: '#0d2618', border: '1px solid #166534', borderRadius: 12, padding: '20px', textAlign: 'center' as const }}>
-          <p style={{ fontSize: 16, fontWeight: 600, color: '#4ade80', marginBottom: 6 }}>✓ {doneCount} file{doneCount !== 1 ? 's' : ''} uploaded</p>
+          <p style={{ fontSize: 16, fontWeight: 600, color: '#4ade80', marginBottom: 6 }}>âœ“ {doneCount} file{doneCount !== 1 ? 's' : ''} uploaded</p>
           <p style={{ fontSize: 13, color: '#64748b', marginBottom: 14, fontFamily: 'monospace' }}>Auto-deletes in 7 days</p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-            <a href="/files" style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', borderRadius: 8, fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>View files →</a>
+            <a href="/files" style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', borderRadius: 8, fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>View files â†’</a>
             <button onClick={() => setEntries([])} style={{ padding: '10px 20px', background: 'transparent', color: '#94a3b8', border: '1px solid #2a2d3a', borderRadius: 8, fontSize: 14, cursor: 'pointer' }}>Upload more</button>
           </div>
         </div>
@@ -301,12 +302,13 @@ export default function Home() {
 
       {entries.length > 0 && entries.length < MAX_FILES && !allDone && (
         <p style={{ textAlign: 'center' as const, fontSize: 12, color: '#475569', marginTop: 12, fontFamily: 'monospace' }}>
-          {entries.length}/{MAX_FILES} files · {MAX_FILES - entries.length} slots remaining
+          {entries.length}/{MAX_FILES} files Â· {MAX_FILES - entries.length} slots remaining
         </p>
       )}
     </div>
   )
 }
+
 
 
 
