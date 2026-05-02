@@ -1,10 +1,9 @@
-import { put } from '@vercel/blob'
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
 import { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
+import { put } from '@vercel/blob'
 
 process.env.BLOB_READ_WRITE_TOKEN = process.env.BLOB2_READ_WRITE_TOKEN
-
-export const maxDuration = 60
 
 async function checkAuth() {
   const cookieStore = await cookies()
@@ -13,52 +12,60 @@ async function checkAuth() {
 }
 
 export async function POST(req: NextRequest) {
-  if (!(await checkAuth())) {
-    return new Response('Unauthorized', { status: 401 })
-  }
+  if (!(await checkAuth())) return new Response('Unauthorized', { status: 401 })
 
-  const originalName = decodeURIComponent(req.nextUrl.searchParams.get('filename') || 'file')
-  const ext = originalName.includes('.') ? '.' + originalName.split('.').pop() : ''
-  const uuid = crypto.randomUUID()
-  const storageKey = `uploads/${uuid}${ext}`
-  const metaKey = `meta/${uuid}.json`
-
-  const contentType = req.headers.get('content-type') || 'application/octet-stream'
-  const fileSize = Number(req.headers.get('x-file-size') || req.headers.get('content-length') || 0)
-
-  if (fileSize > 100 * 1024 * 1024) {
-    return new Response('File too large', { status: 413 })
-  }
+  const body = (await req.json()) as HandleUploadBody
 
   try {
-    const blob = await put(storageKey, req.body!, {
-      access: 'private',
-      contentType,
-      addRandomSuffix: false,
+    const jsonResponse = await handleUpload({
+      body,
+      request: req,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        // Verify auth before generating upload token
+        const cookieStore = await cookies()
+        const auth = cookieStore.get('portal_auth')
+        if (auth?.value !== process.env.PORTAL_PASSWORD) {
+          throw new Error('Unauthorized')
+        }
+        return {
+          access: 'private' as const,
+          addRandomSuffix: false,
+          tokenPayload: clientPayload,
+        }
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        // Called by Vercel after upload completes
+        try {
+          const payload = JSON.parse(tokenPayload || '{}')
+          const originalName = payload.originalName || blob.pathname.split('/').pop() || 'file'
+          const uuid = payload.uuid || crypto.randomUUID()
+          const metaKey = `meta/${uuid}.json`
+          const now = new Date()
+          const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+
+          const meta = {
+            key: blob.pathname,
+            metaKey,
+            blobUrl: blob.url,
+            originalName,
+            size: blob.size || 0,
+            uploadedAt: now.toISOString(),
+            expiresAt: expiresAt.toISOString(),
+          }
+
+          await put(metaKey, JSON.stringify(meta), {
+            access: 'private',
+            addRandomSuffix: false,
+            contentType: 'application/json',
+          })
+        } catch (err) {
+          console.error('onUploadCompleted error:', err)
+        }
+      },
     })
 
-    const now = new Date()
-    const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-
-    const meta = {
-      key: storageKey,
-      metaKey,
-      blobUrl: blob.url,
-      originalName,
-      size: fileSize || 0,
-      uploadedAt: now.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-    }
-
-    await put(metaKey, JSON.stringify(meta), {
-      access: 'private',
-      addRandomSuffix: false,
-      contentType: 'application/json',
-    })
-
-    return Response.json({ success: true, name: originalName })
+    return Response.json(jsonResponse)
   } catch (err: any) {
-    console.error('Upload error:', err)
-    return new Response('Upload failed: ' + (err.message || 'Unknown error'), { status: 500 })
+    return new Response(err.message, { status: 400 })
   }
 }
