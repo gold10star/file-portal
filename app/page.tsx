@@ -126,7 +126,7 @@ export default function Home() {
           handleUploadUrl: '/api/upload',
           clientPayload: JSON.stringify({
             originalName: entry.file.name,
-            uuid,
+            uuid,`n          size: entry.file.size,`n          size: entry.file.size,`n          size: entry.file.size,
           }),
           onUploadProgress: ({ percentage }) => {
             setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, progress: Math.min(95, percentage) } : e))
@@ -307,3 +307,6 @@ export default function Home() {
     </div>
   )
 }
+
+
+
